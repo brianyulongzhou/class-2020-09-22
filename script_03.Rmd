@@ -39,8 +39,12 @@ sep_old <-
   rename(id = course_id,
          title = course_title,
          name = course_name,
-         department = course_department) %>% 
-  filter(u_grad > 10)
+         department = course_department) %>%
+  group_by(id) %>% 
+  mutate(u_grad = sum(u_grad)) %>%
+  #filter(u_grad > 10) %>%
+  distinct() 
+
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
@@ -53,6 +57,26 @@ sep_old <-
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
 
+```{r, echo = FALSE}
+sep_new <- 
+  read_excel("new_data/class_enrollment_summary_by_term_9-21-2020.xlsx", 
+             skip = 3) %>% 
+  clean_names() %>% 
+  filter(! is.na(course_title)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department) %>%
+  group_by(id) %>% 
+  mutate(u_grad = sum(u_grad)) %>%
+  #filter(u_grad > 10) %>%
+  distinct() 
+
+##Remove the filter for courses with under 10 enrollment because there could be changes in seminar classes or smaller ones.
+
+```
 
 
 ### Scene 2
@@ -60,16 +84,24 @@ sep_old <-
 **Prompt:** Dean Amanda Claybaugh is concerned about the drop in undergradaute enrollment in some courses between September 1 and today. She wants you to analyze this issue. Before you dive into the details, provide some bullet points as to how Wisdom and Temperance apply to this situation. Every student should have several bullet points. Someone will be asked to share their screen and discuss.
 
 Before we start on the model, Wisdom suggests we should:
-
+- Clearly define our measurements and estimands (i.e. the difference between undergrad enrollment today and from Sep 1)
+- Make assumptions to limit out the amount of missing data or duplicate rows (e.g. the different undergrad enrollments on a day to day, or the data from Sep 1 vs. Sep 2). For instance, we could make an assumption about dropping research courses or independent study with an enrollment below 10, and that may drop some important classes that should count along with a lot of random classes.
 
 After we have a model, Temperance suggests we should:
-
+- Understand the limitations of your model and your tools. For instance, you can estimate the general trend for what's happening with undergrad enrollment, but you cannot account for the individual variation or make assumptions about causal effects. 
+- Make sure your data is valid. You should be careful not to introduce selection bias or change the assignment mechanism / selection mechanism to reflect skews in the causal effects. You should make sure your code is correct and you have a reason for every line in your code to ensure internal validity.
 
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
+```{r}
+sep_diff <- inner_join(sep_new, sep_old, "id") %>%
+  filter(u_grad.x > 10, u_grad.y >10) %>%
+  mutate(difference = u_grad.y - u_grad.x)
+  
+```
 
 
 
